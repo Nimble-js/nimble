@@ -12,7 +12,6 @@ export class Component implements ComponentInterface {
     }
 
     initialize() {
-        console.error("Component does not implement initialize...");
     }
 
     toString(): string {

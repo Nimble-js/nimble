@@ -1,14 +1,14 @@
 {
-  "name": "nimblejs",
-  "version": "0.0.1",
+  "name": "@christianarchuleta/nimblejs",
+  "version": "0.0.4",
   "description": "",
   "main": "index.ts",
   "scripts": {
     "serve": "webpack serve",
     "build": "webpack"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "christianarchuleta",
+  "license": "MIT",
   "dependencies": {
     "ts-node": "^10.9.1"
   },
@@ -16,7 +16,7 @@
     "css-loader": "^6.8.1",
     "html-loader": "^4.2.0",
     "html-webpack-plugin": "^5.5.3",
-    "sass": "^1.66.1",
+    "sass": "^1.64.2",
     "sass-loader": "^13.3.2",
     "ts-loader": "^9.4.4",
     "typescript": "^5.2.2",
