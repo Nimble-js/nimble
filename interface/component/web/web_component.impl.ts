@@ -1,10 +1,9 @@
 import { Nimble } from '../../..';
-import { Component } from "./../base/component.impl";
-import { WebComponentInterface } from "./web_component.interface";
-import Renderer from './../../vendor/renderer/renderer.impl'
 import { all_events } from '../../util/js_events';
+import Renderer from './../../vendor/renderer/renderer.impl';
+import { Component } from "./../base/component.impl";
 import { Style } from './style';
-import { RouteRoot } from '../../..';
+import { WebComponentInterface } from "./web_component.interface";
 const sass = require('sass');
 
 
@@ -92,6 +91,14 @@ function attachChildListeners(children: HTMLCollection) {
 function createId({ name, key }: any) {
     return `${name}_${key}`
 }
+
+function assignIDsToInputElements(container: Element) {
+    const inputElements = container.querySelectorAll('input:not([id]), select:not([id]), textarea:not([id])');
+    inputElements.forEach((inputElement, index) => {
+        const generatedID = `nimbleGeneratedID_${index}`;
+        inputElement.id = generatedID;
+    });
+}
 function createElement(template: string, data: any, styles: Style[]) {
     const element = document.createElement('div');
 
@@ -127,6 +134,9 @@ function createElement(template: string, data: any, styles: Style[]) {
         element.id = createId(data)
         element.classList.add(createId(data));
         element.innerHTML = renderedResult;
+
+        // Assign IDs to input elements without IDs
+        assignIDsToInputElements(element);
     } else {
         element.textContent = 'WebComponent implementation not found...'
     }
@@ -172,10 +182,83 @@ export class WebComponent extends Component implements WebComponentInterface {
     }
 
     navigate(path: string) {
-        softNavigate(document.getElementById(createId(this)), {value: path} as Attr)
+        softNavigate(document.getElementById(createId(this)), { value: path } as Attr)
+    }
+
+    userInputState: Record<string, Record<string, any>> = {};
+
+    storeUserInputState() {
+        // Store all details of user input elements within the component
+        const inputElements = document.querySelectorAll(`#${createId(this)} input, #${createId(this)} select, #${createId(this)} textarea`);
+        inputElements.forEach((inputElement) => {
+            const inputId = inputElement.id;
+            this.userInputState[inputId] = this.getInputElementDetails(inputId);
+        });
+        // this.focusedElement = document.activeElement;
+    }
+
+    restoreUserInputState() {
+        // Restore all details of user input elements within the component
+        Object.keys(this.userInputState).forEach((inputId) => {
+            this.setInputElementDetails(inputId, this.userInputState[inputId]);
+        });
+
+    }
+
+    getInputElementDetails(elementId: string): Record<string, any> {
+        const inputElement = document.getElementById(elementId);
+        if (inputElement) {
+            // Store all relevant details of the input element
+            return {
+                value: (inputElement as any).value,
+                checked: (inputElement as HTMLInputElement).checked,
+                selected: (inputElement as HTMLSelectElement).selectedOptions?.[0]?.value,
+                disabled: (inputElement as any).disabled,
+                readonly: (inputElement as any).readOnly,
+                focused: inputElement === document.activeElement
+                // attributes: this.getAttributes(inputElement),
+                // Add more properties as needed
+            };
+        }
+        return {};
+    }
+
+    setInputElementDetails(elementId: string, details: Record<string, any>) {
+        const inputElement = document.getElementById(elementId);
+        if (inputElement) {
+            // Set all relevant details of the input element based on the stored state
+            (inputElement as any).value = details.value;
+            (inputElement as HTMLInputElement).checked = details.checked;
+            // (inputElement as HTMLSelectElement).value = details.selected;
+            (inputElement as any).disabled = details.disabled;
+            (inputElement as any).readOnly = details.readonly;
+            if (details.focused) {
+                inputElement.focus();
+            }
+            // this.setAttributes(inputElement, details.attributes);
+            // Set more properties as needed
+        }
+    }
+
+    getAttributes(element: Element): Record<string, string> {
+        const attributes: Record<string, string> = {};
+        Array.from(element.attributes).forEach((attr) => {
+            attributes[attr.name] = attr.value;
+        });
+        return attributes;
+    }
+
+    setAttributes(element: Element, attributes: Record<string, string>) {
+        Object.entries(attributes).forEach(([name, value]) => {
+            if (value) {
+                element.setAttribute(name, value);
+            }
+        });
     }
 
     refresh() {
+        this.storeUserInputState();
+
         const currentComponentElement = document.getElementById(createId(this));
         const newElement = createElement(this.template, this, this.styles);
         if (currentComponentElement) {
@@ -202,5 +285,6 @@ export class WebComponent extends Component implements WebComponentInterface {
                 Nimble.get<WebComponent>((this as any)[k].key).refresh();
             }
         })
+        this.restoreUserInputState();
     }
 }
